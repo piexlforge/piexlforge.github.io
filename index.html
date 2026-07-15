@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnvGuard - 智能环境监测平台</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="8" width="28" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M6 8V4a2 2 0 012-2h4a2 2 0 012 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M18 8V4a2 2 0 012-2h4a2 2 0 012 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M6 24v4a2 2 0 002 2h4a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M18 24v4a2 2 0 002 2h4a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <span class="logo-text">EnvGuard</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#overview">产品概述</a></li>
+                <li><a href="#architecture">技术架构</a></li>
+                <li><a href="#dashboard" id="nav-dashboard">实时监测</a></li>
+                <li><a href="#alerts" id="nav-alerts">告警管理</a></li>
+            </ul>
+            <div class="nav-auth">
+                <div class="nav-status">
+                    <span class="status-dot online"></span>
+                    <span>系统在线</span>
+                </div>
+                <div class="auth-buttons" id="auth-buttons">
+                    <button class="btn-secondary" onclick="openModal('login')">登录</button>
+                    <button class="btn-primary" onclick="openModal('register')">注册</button>
+                </div>
+                <div class="user-menu" id="user-menu" style="display: none;">
+                    <div class="user-info">
+                        <div class="avatar">U</div>
+                        <span id="user-name">用户</span>
+                    </div>
+                    <button class="btn-secondary" onclick="logout()">退出登录</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section id="overview" class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="badge">物联网环境监测解决方案</div>
+                    <h1 class="hero-title">
+                        实时感知环境变化
+                        <br>
+                        <span class="title-highlight">守护每一寸空间</span>
+                    </h1>
+                    <p class="hero-description">
+                        基于 ESP32 的智能环境监测平台，集成温湿度、氨气浓度检测，
+                        通过 MQTT 协议实现云端与终端的高效双向通信，支持远程控制与智能告警。
+                    </p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">500+</span>
+                            <span class="stat-label">设备接入</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">99.9%</span>
+                            <span class="stat-label">系统可用性</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">10ms</span>
+                            <span class="stat-label">数据延迟</span>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="btn-primary" onclick="openModal('register')">立即体验</button>
+                        <button class="btn-outline" onclick="handleDemoClick()">查看演示</button>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="monitor-card">
+                        <div class="monitor-header">
+                            <div class="monitor-title">环境监测面板</div>
+                            <div class="monitor-status online">在线</div>
+                        </div>
+                        <div class="monitor-body">
+                            <div class="monitor-grid">
+                                <div class="monitor-item temp">
+                                    <div class="monitor-icon">🌡️</div>
+                                    <div class="monitor-info">
+                                        <span class="monitor-value" id="hero-temp">22.5</span>
+                                        <span class="monitor-unit">°C</span>
+                                    </div>
+                                </div>
+                                <div class="monitor-item humi">
+                                    <div class="monitor-icon">💧</div>
+                                    <div class="monitor-info">
+                                        <span class="monitor-value" id="hero-humi">65.2</span>
+                                        <span class="monitor-unit">%</span>
+                                    </div>
+                                </div>
+                                <div class="monitor-item nh3">
+                                    <div class="monitor-icon">🛡️</div>
+                                    <div class="monitor-info">
+                                        <span class="monitor-value" id="hero-nh3">22.8</span>
+                                        <span class="monitor-unit">ppm</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="monitor-chart">
+                                <canvas id="hero-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="architecture" class="architecture-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">技术架构</div>
+                <h2 class="section-title">端到端解决方案</h2>
+                <p class="section-description">从硬件终端到云端服务，构建完整的物联网生态体系</p>
+            </div>
+            <div class="architecture-grid">
+                <div class="arch-card">
+                    <div class="arch-icon">
+                        <svg viewBox="0 0 48 48" fill="none">
+                            <rect x="4" y="4" width="40" height="40" rx="8" stroke="currentColor" stroke-width="2"/>
+                            <rect x="10" y="14" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                            <rect x="26" y="14" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                            <rect x="10" y="26" width="28" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3>嵌入式终端</h3>
+                    <p>基于 ESP32 芯片，集成多种传感器模块，实现数据采集与设备控制</p>
+                    <div class="tech-stack">
+                        <span>ESP32</span>
+                        <span>DHT11</span>
+                        <span>MQ-135</span>
+                    </div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">
+                        <svg viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2"/>
+                            <path d="M24 10v28M10 24h28" stroke="currentColor" stroke-width="1.5"/>
+                            <circle cx="24" cy="24" r="6" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3>通信协议</h3>
+                    <p>采用 MQTT 协议实现高效可靠的双向通信，支持设备状态实时同步</p>
+                    <div class="tech-stack">
+                        <span>MQTT</span>
+                        <span>WebSocket</span>
+                        <span>TLS/SSL</span>
+                    </div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">
+                        <svg viewBox="0 0 48 48" fill="none">
+                            <rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M14 16h20M14 24h16M14 32h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>云端服务</h3>
+                    <p>基于 Spring Boot 构建的微服务架构，提供数据存储、业务逻辑和 API 接口</p>
+                    <div class="tech-stack">
+                        <span>Spring Boot</span>
+                        <span>MySQL</span>
+                        <span>Redis</span>
+                    </div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">
+                        <svg viewBox="0 0 48 48" fill="none">
+                            <rect x="6" y="12" width="36" height="24" rx="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 18h24M12 24h20M12 30h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <circle cx="40" cy="16" r="3" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3>前端应用</h3>
+                    <p>现代化的 Web 管理界面，支持实时数据展示、设备控制和告警管理</p>
+                    <div class="tech-stack">
+                        <span>Vue.js</span>
+                        <span>Element UI</span>
+                        <span>ECharts</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="dashboard" class="dashboard-section hidden-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">实时监测</div>
+                <h2 class="section-title">环境数据看板</h2>
+                <p class="section-description">实时查看设备状态和环境参数变化趋势</p>
+            </div>
+            <div class="dashboard-grid">
+                <div class="sensor-card temperature">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="4"/>
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">温度</div>
+                    </div>
+                    <div class="card-value">
+                        <span class="value-number" id="temp-value">22.5</span>
+                        <span class="value-unit">°C</span>
+                    </div>
+                    <div class="card-status normal">
+                        <span class="status-dot"></span>
+                        <span>正常</span>
+                    </div>
+                    <div class="card-chart">
+                        <canvas id="temp-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="sensor-card humidity">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">湿度</div>
+                    </div>
+                    <div class="card-value">
+                        <span class="value-number" id="humi-value">65.2</span>
+                        <span class="value-unit">%</span>
+                    </div>
+                    <div class="card-status normal">
+                        <span class="status-dot"></span>
+                        <span>正常</span>
+                    </div>
+                    <div class="card-chart">
+                        <canvas id="humi-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="sensor-card nh3">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">氨气浓度</div>
+                    </div>
+                    <div class="card-value">
+                        <span class="value-number" id="nh3-value">22.8</span>
+                        <span class="value-unit">ppm</span>
+                    </div>
+                    <div class="card-status warning">
+                        <span class="status-dot"></span>
+                        <span>接近阈值</span>
+                    </div>
+                    <div class="card-chart">
+                        <canvas id="nh3-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="device-control-section">
+                <h3 class="control-title">设备控制</h3>
+                <div class="control-grid">
+                    <div class="control-card">
+                        <div class="control-icon light-icon">💡</div>
+                        <div class="control-info">
+                            <h4>照明灯</h4>
+                            <p>控制主灯开关状态</p>
+                        </div>
+                        <button class="toggle-btn" id="light-toggle" onclick="toggleDevice('light')">
+                            <span class="toggle-track"></span>
+                            <span class="toggle-thumb"></span>
+                        </button>
+                        <span class="control-status" id="light-status">关闭</span>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-icon fan-icon">🌀</div>
+                        <div class="control-info">
+                            <h4>风扇</h4>
+                            <p>控制通风风扇开关</p>
+                        </div>
+                        <button class="toggle-btn" id="fan-toggle" onclick="toggleDevice('fan')">
+                            <span class="toggle-track"></span>
+                            <span class="toggle-thumb"></span>
+                        </button>
+                        <span class="control-status" id="fan-status">关闭</span>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-icon buzzer-icon">🔔</div>
+                        <div class="control-info">
+                            <h4>蜂鸣器测试</h4>
+                            <p>测试蜂鸣器警报功能</p>
+                        </div>
+                        <button class="action-btn" onclick="testBuzzer()">测试</button>
+                        <span class="control-status" id="buzzer-status">就绪</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="alerts" class="alerts-section hidden-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">告警管理</div>
+                <h2 class="section-title">智能告警系统</h2>
+                <p class="section-description">自定义阈值规则，实时监控异常状态</p>
+            </div>
+            <div class="alerts-grid">
+                <div class="alerts-config">
+                    <h3>阈值配置</h3>
+                    <div class="config-form">
+                        <div class="form-group">
+                            <label>氨气浓度阈值</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="nh3-threshold" value="26" min="0" max="100">
+                                <span class="input-suffix">ppm</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>温度范围</label>
+                            <div class="range-wrapper">
+                                <div class="input-wrapper">
+                                    <input type="number" id="temp-low" value="18" min="-40" max="80">
+                                    <span class="input-suffix">°C</span>
+                                </div>
+                                <span class="range-separator">~</span>
+                                <div class="input-wrapper">
+                                    <input type="number" id="temp-high" value="23" min="-40" max="80">
+                                    <span class="input-suffix">°C</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>湿度范围</label>
+                            <div class="range-wrapper">
+                                <div class="input-wrapper">
+                                    <input type="number" id="humi-low" value="60" min="0" max="100">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <span class="range-separator">~</span>
+                                <div class="input-wrapper">
+                                    <input type="number" id="humi-high" value="75" min="0" max="100">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>连续超标次数</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="alert-count" value="3" min="1" max="10">
+                                <span class="input-suffix">次触发警报</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary btn-full" onclick="saveAlertsConfig()">保存配置</button>
+                    </div>
+                </div>
+
+                <div class="alerts-history">
+                    <div class="history-header">
+                        <h3>告警历史</h3>
+                        <span class="history-count">最近 3 条记录</span>
+                    </div>
+                    <div class="history-list" id="alert-history">
+                        <div class="history-item">
+                            <div class="history-icon warning">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="history-content">
+                                <div class="history-type">氨气浓度</div>
+                                <div class="history-time">2026-07-15 14:32:18</div>
+                            </div>
+                            <div class="history-value">
+                                <div>当前: <strong>27.5 ppm</strong></div>
+                                <div>阈值: <strong>26 ppm</strong></div>
+                            </div>
+                        </div>
+                        <div class="history-item danger">
+                            <div class="history-icon danger">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                            </div>
+                            <div class="history-content">
+                                <div class="history-type">温度异常</div>
+                                <div class="history-time">2026-07-15 13:45:22</div>
+                            </div>
+                            <div class="history-value">
+                                <div>当前: <strong>24.1 °C</strong></div>
+                                <div>阈值: <strong>23 °C</strong></div>
+                            </div>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-icon warning">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="history-content">
+                                <div class="history-type">湿度偏高</div>
+                                <div class="history-time">2026-07-15 12:18:35</div>
+                            </div>
+                            <div class="history-value">
+                                <div>当前: <strong>76.8 %</strong></div>
+                                <div>阈值: <strong>75 %</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="8" width="28" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M6 8V4a2 2 0 012-2h4a2 2 0 012 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M18 8V4a2 2 0 012-2h4a2 2 0 012 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M6 24v4a2 2 0 002 2h4a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M18 24v4a2 2 0 002 2h4a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <span>EnvGuard</span>
+                </div>
+                <div class="footer-links">
+                    <a href="#overview">产品概述</a>
+                    <a href="#architecture">技术架构</a>
+                    <a href="#dashboard" id="footer-dashboard">实时监测</a>
+                    <a href="#alerts" id="footer-alerts">告警管理</a>
+                </div>
+                <div class="footer-copyright">
+                    <p>&copy; 2026 EnvGuard. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="modal-overlay" id="modal-overlay" style="display: none;" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">登录</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                    <div class="form-group" id="name-group" style="display: none;">
+                        <label>用户名</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <input type="text" id="name" placeholder="请输入用户名">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            <input type="email" id="email" placeholder="请输入邮箱">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                            <input type="password" id="password" placeholder="请输入密码">
+                        </div>
+                    </div>
+                    <div class="form-group" id="confirm-group" style="display: none;">
+                        <label>确认密码</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                            <input type="password" id="confirm-password" placeholder="请再次输入密码">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full" id="submit-btn">登录</button>
+                </form>
+                <div class="modal-footer">
+                    <span id="auth-switch">还没有账号？</span>
+                    <button class="link-btn" onclick="switchAuthMode()">立即注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-overlay" id="dialog-overlay" style="display: none;" onclick="closeDialog()">
+        <div class="dialog-content" onclick="event.stopPropagation()">
+            <div class="dialog-icon" id="dialog-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h3 id="dialog-title">提示</h3>
+            <p id="dialog-message">消息内容</p>
+            <button class="btn-primary" onclick="closeDialog()">确定</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
